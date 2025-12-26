@@ -1,0 +1,313 @@
+/* src/pages/Settings.css */
+@import "../App.css";
+
+.settings-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 96px 8px 16px;
+  align-items: center;
+}
+
+.settings-header {
+  width: 100%;
+  max-width: 1040px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 6px;
+  border-radius: 20px 20px 0 0;
+  background: radial-gradient(
+      circle at top,
+      rgba(255, 77, 136, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(145deg, #05060a, #11111a);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app.light .settings-header {
+  background: radial-gradient(
+      circle at top,
+      rgba(255, 77, 136, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(145deg, #ffffff, #f3f0ff);
+  border-bottom-color: rgba(15, 15, 15, 0.08);
+}
+
+.settings-back {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.app.light .settings-back {
+  color: #111118;
+}
+
+.settings-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-header-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-header-sub {
+  font-size: 11px;
+  color: var(--text-muted-dark);
+}
+
+.app.light .settings-header-sub {
+  color: var(--text-muted-light);
+}
+
+.settings-main {
+  width: 100%;
+  max-width: 1040px;
+  background: linear-gradient(145deg, #05060a, #11111a);
+  border-radius: 0 0 24px 24px;
+  padding: 10px 10px 14px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app.light .settings-main {
+  background: linear-gradient(145deg, #ffffff, #f5f2ff);
+}
+
+.settings-loading {
+  font-size: 13px;
+  padding: 8px 4px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.app.light .settings-loading {
+  color: rgba(17, 17, 24, 0.86);
+}
+
+.settings-message {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(16, 105, 255, 0.14);
+  color: #bcdcff;
+}
+
+.app.light .settings-message {
+  background: rgba(16, 105, 255, 0.08);
+  color: #194074;
+}
+
+.settings-section {
+  border-radius: 16px;
+  padding: 10px 10px 12px;
+  background: rgba(8, 8, 14, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app.light .settings-section {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 15, 15, 0.06);
+}
+
+.settings-section h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* profile form */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.settings-field span {
+  font-size: 12px;
+}
+
+.settings-field input,
+.settings-field textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 4, 8, 0.96);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.settings-field input::placeholder,
+.settings-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.app.light .settings-field input,
+.app.light .settings-field textarea {
+  background: rgba(255, 255, 255, 0.96);
+  color: #111118;
+  border-color: rgba(15, 15, 15, 0.14);
+}
+
+.app.light .settings-field input::placeholder,
+.app.light .settings-field textarea::placeholder {
+  color: rgba(17, 17, 24, 0.55);
+}
+
+.settings-field small {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.settings-save-btn {
+  margin-top: 2px;
+  align-self: flex-start;
+  border-radius: 999px;
+  border: none;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff4d88, #ff8ab8);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(255, 77, 136, 0.55);
+}
+
+/* linking */
+
+.settings-linked-card {
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: rgba(12, 12, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app.light .settings-linked-card {
+  background: rgba(248, 248, 255, 0.98);
+  border-color: rgba(15, 15, 15, 0.12);
+}
+
+.settings-linked-label {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.settings-linked-username {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-unlink-btn {
+  border-radius: 999px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  background: rgba(255, 77, 136, 0.12);
+  color: #ff9bc2;
+}
+
+.settings-help-text {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* inline link form */
+
+.settings-form-inline {
+  margin-top: 4px;
+  display: flex;
+  gap: 6px;
+}
+
+.settings-form-inline input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 4, 8, 0.96);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+}
+
+.settings-form-inline input::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.app.light .settings-form-inline input {
+  background: rgba(255, 255, 255, 0.96);
+  color: #111118;
+  border-color: rgba(15, 15, 15, 0.14);
+}
+
+.app.light .settings-form-inline input::placeholder {
+  color: rgba(17, 17, 24, 0.55);
+}
+
+.settings-form-inline button {
+  border-radius: 999px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff4d88, #ff8ab8);
+  color: #ffffff;
+}
+
+/* session */
+
+.settings-logout-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 77, 136, 0.36);
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  background: rgba(30, 8, 18, 0.96);
+  color: #ff9bbd;
+}
+
+.app.light .settings-logout-btn {
+  background: rgba(255, 240, 245, 0.96);
+  border-color: rgba(255, 77, 136, 0.48);
+}
+
+/* responsive */
+
+@media (max-width: 768px) {
+  .settings-root {
+    padding: 88px 8px 16px;
+  }
+
+  .settings-header {
+    border-radius: 18px 18px 0 0;
+  }
+
+  .settings-main {
+    border-radius: 0 0 20px 20px;
+  }
+}

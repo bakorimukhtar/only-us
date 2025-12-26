@@ -6,32 +6,43 @@ import { supabase } from "./lib/supabaseClient";
 import Login from "./pages/Login.jsx";
 import Home from "./pages/Home.jsx";
 import Chat from "./pages/Chat.jsx";
-import Games from "./pages/Games.jsx";
 import Settings from "./pages/Settings.jsx";
 
 function App() {
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(() => {
+    const saved = window.localStorage.getItem("crush_app_theme");
+    return saved === "light" ? "light" : "dark";
+  });
   const [showSplash, setShowSplash] = useState(true);
-  const [screen, setScreen] = useState("landing"); // "landing" | "login" | "home" | "chat" | "games" | "settings"
+  const [screen, setScreen] = useState("landing");
   const [currentUser, setCurrentUser] = useState("");
 
+  // On mount: check Supabase session + stored username and decide screen
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("crush_app_theme");
-    if (savedTheme === "dark" || savedTheme === "light") {
-      setTheme(savedTheme);
-    }
+    const init = async () => {
+      const savedUser = window.localStorage.getItem("onlyus_username");
 
-    const savedUser = window.localStorage.getItem("onlyus_username");
-    if (savedUser) {
-      setCurrentUser(savedUser);
-      setScreen("landing"); // later you can change to "home"
-    }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession(); // persisted session [web:373][web:381]
+
+      if (session && savedUser) {
+        setCurrentUser(savedUser);
+        setScreen("home");
+      } else {
+        setScreen("landing");
+      }
+    };
+
+    init();
   }, []);
 
+  // theme persistence
   useEffect(() => {
     window.localStorage.setItem("crush_app_theme", theme);
   }, [theme]);
 
+  // tiny splash delay
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1400);
     return () => clearTimeout(timer);
@@ -49,7 +60,7 @@ function App() {
   const handleLoginSuccess = async (usernameFallback) => {
     const {
       data: { user },
-    } = await supabase.auth.getUser(); // includes email + user_metadata [web:140]
+    } = await supabase.auth.getUser(); // uses current session [web:223][web:374]
 
     const email = user?.email || "";
     const displayName =
@@ -67,12 +78,17 @@ function App() {
   const handleNavigateFromHome = (target) => {
     if (target === "home") setScreen("home");
     if (target === "chat") setScreen("chat");
-    if (target === "games") setScreen("games");
     if (target === "settings") setScreen("settings");
     if (target === "link-account") {
-      // later: dedicated link screen or modal
       setScreen("settings");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.localStorage.removeItem("onlyus_username");
+    setCurrentUser("");
+    setScreen("landing");
   };
 
   return (
@@ -109,6 +125,9 @@ function App() {
         <Home
           currentUser={currentUser}
           onNavigate={handleNavigateFromHome}
+          onLogout={handleLogout}
+          // you can use this inside Home to open a quote composer if needed
+          onShowQuotes={() => {}}
         />
       )}
 
@@ -116,26 +135,18 @@ function App() {
         <Chat
           currentUser={currentUser}
           onBack={() => setScreen("home")}
+          onNavigate={(target) => {
+            if (target === "home") setScreen("home");
+            if (target === "settings") setScreen("settings");
+          }}
         />
       )}
-
-{screen === "games" && (
-  <Games
-    currentUser={currentUser}
-    onBack={() => setScreen("home")}
-    onNavigate={(target) => {
-      if (target === "home") setScreen("home");
-      if (target === "chat") setScreen("chat");
-      if (target === "settings") setScreen("settings");
-    }}
-  />
-)}
-
 
       {screen === "settings" && (
         <Settings
           currentUser={currentUser}
           onBack={() => setScreen("home")}
+          onLogout={handleLogout}
         />
       )}
     </div>
@@ -189,7 +200,6 @@ function SoftSplash({ onEnterSpace }) {
 
         <RightVisualSplash />
 
-        {/* mobile-only button under card */}
         <div className="mobile-copy">
           <h2 className="mobile-copy-title">
             Your little <span>universe</span>
@@ -219,7 +229,6 @@ function Landing({ onEnterSpace }) {
   return (
     <div className="landing-root">
       <div className="landing-shell">
-        {/* Desktop hero text card */}
         <div className="landing-card">
           <div className="landing-content">
             <div className="landing-badge-row">
@@ -276,10 +285,8 @@ function Landing({ onEnterSpace }) {
           </div>
         </div>
 
-        {/* Right visual (always shown) */}
         <RightVisualLanding />
 
-        {/* Mobile-only copy under card */}
         <div className="mobile-copy">
           <h2 className="mobile-copy-title">
             Your little <span>universe</span>
