@@ -14,7 +14,12 @@ import {
   FiPlayCircle,
   FiHelpCircle,
   FiZap,
+  FiTrash2,
 } from "react-icons/fi";
+
+const ROOM_ID = "00000000-0000-0000-0000-000000000001"; // later: pair.id
+const TYPING_IDLE_MS = 2000;
+const ONLINE_WINDOW_SEC = 20;
 
 function Chat({ currentUser, onBack, onNavigate }) {
   const [messages, setMessages] = useState([]);
@@ -27,21 +32,16 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkStatus, setLinkStatus] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [partnerUsername, setPartnerUsername] = useState("");
+  const [partnerOnline, setPartnerOnline] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const lastReadRef = useRef(Date.now());
   const bottomRef = useRef(null);
-
-  // TEMP: single shared room; later use pair.id from Supabase
-  const ROOM_ID = "00000000-0000-0000-0000-000000000001";
-
-  // Get current user id once
-  useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-    };
-    loadUser();
-  }, []);
+  const typingTimeoutRef = useRef(null);
+  const typingChannelRef = useRef(null);
+  const presenceChannelRef = useRef(null);
 
   // For now prompts are inline; later import from src/assets/Games/**
   const promptSets = {
@@ -101,7 +101,44 @@ function Chat({ currentUser, onBack, onNavigate }) {
     },
   };
 
-  // load existing messages
+  // Load user + partner once
+  useEffect(() => {
+    const loadUserAndPartner = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setCurrentUserId(user.id);
+
+      const { data: pairData } = await supabase
+        .from("pairs")
+        .select("user_a, user_b")
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+        .maybeSingle();
+
+      if (!pairData) return;
+
+      const partnerId =
+        pairData.user_a === user.id ? pairData.user_b : pairData.user_a;
+
+      if (!partnerId) return;
+
+      const { data: partnerProfile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", partnerId)
+        .maybeSingle();
+
+      if (partnerProfile?.username) {
+        setPartnerUsername(partnerProfile.username);
+      }
+    };
+
+    loadUserAndPartner();
+  }, []);
+
+  // Messages + realtime + unread
   useEffect(() => {
     const loadMessages = async () => {
       const { data, error } = await supabase
@@ -115,33 +152,134 @@ function Chat({ currentUser, onBack, onNavigate }) {
         return;
       }
       setMessages(data || []);
+      lastReadRef.current = Date.now();
+      setUnreadCount(0);
     };
 
     loadMessages();
 
-    // Optional: realtime subscription
     const channel = supabase
       .channel("room-messages")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${ROOM_ID}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${ROOM_ID}`,
+        },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
+          setUnreadCount((prev) => {
+            if (!currentUserId) return prev;
+            const fromPartner = payload.new.sender_id !== currentUserId;
+            return fromPartner ? prev + 1 : prev;
+          });
         }
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${ROOM_ID}`,
+        },
+        (payload) => {
+          if (!payload.old?.id) return;
+          setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
+        }
+      )
+      .subscribe(); // [web:452]
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [ROOM_ID]);
+  }, [currentUserId]);
 
-  // scroll to bottom when messages change
+  // Smooth scroll
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Mark read on focus
+  useEffect(() => {
+    const onFocus = () => {
+      lastReadRef.current = Date.now();
+      setUnreadCount(0);
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Typing indicator
+  useEffect(() => {
+    const channel = supabase.channel(`typing:${ROOM_ID}`);
+
+    channel.on("broadcast", { event: "typing" }, (payload) => {
+      if (!currentUserId || payload.payload.userId === currentUserId) return;
+      setPartnerTyping(true);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        setPartnerTyping(false);
+      }, TYPING_IDLE_MS);
+    });
+
+    channel.subscribe();
+    typingChannelRef.current = channel;
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
+  const sendTypingEvent = () => {
+    if (!typingChannelRef.current || !currentUserId) return;
+    typingChannelRef.current.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: currentUserId },
+    });
+  };
+
+  // Presence (online indicator)
+  useEffect(() => {
+    const channel = supabase.channel(`presence:${ROOM_ID}`, {
+      config: { presence: { key: currentUserId || "anon" } },
+    });
+
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState(); // [web:457][web:280]
+      const onlineIds = Object.keys(state || {});
+      setPartnerOnline(onlineIds.length > 1);
+    });
+
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED" && currentUserId) {
+        channel.track({ userId: currentUserId, updatedAt: Date.now() });
+      }
+    });
+
+    presenceChannelRef.current = channel;
+
+    const heartbeat = setInterval(() => {
+      if (!presenceChannelRef.current || !currentUserId) return;
+      presenceChannelRef.current.track({
+        userId: currentUserId,
+        updatedAt: Date.now(),
+      });
+    }, ONLINE_WINDOW_SEC * 500);
+
+    return () => {
+      clearInterval(heartbeat);
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -180,6 +318,13 @@ function Chat({ currentUser, onBack, onNavigate }) {
     setMessages((prev) => [...prev, data]);
     setText("");
     setSending(false);
+    lastReadRef.current = Date.now();
+    setUnreadCount(0);
+  };
+
+  const handleDeleteMessage = async (id) => {
+    await supabase.from("messages").delete().eq("id", id); // [web:437]
+    setMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   const handleLink = async (e) => {
@@ -215,6 +360,10 @@ function Chat({ currentUser, onBack, onNavigate }) {
     }
   };
 
+  const chatSubtitle = partnerUsername
+    ? `Chat with @${partnerUsername}`
+    : "Private DM with your person";
+
   return (
     <div className="chat-root">
       <div className="chat-shell">
@@ -229,9 +378,15 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </button>
 
           <div className="chat-header-main">
-            <span className="chat-header-title">Only Us</span>
+            <span className="chat-header-title">
+              Only Us{" "}
+              {partnerOnline && <span className="chat-online-dot" />}
+            </span>
             <span className="chat-header-subtitle">
-              Private DM with your person
+              {chatSubtitle}
+              {partnerTyping && (
+                <span className="chat-typing-indicator"> · typing…</span>
+              )}
             </span>
           </div>
 
@@ -280,7 +435,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </section>
         )}
 
-        {/* Messages area */}
+        {/* Messages */}
         <main className="chat-main">
           {error && <div className="chat-error">{error}</div>}
 
@@ -290,6 +445,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
                 key={m.id}
                 message={m}
                 isOwn={currentUserId && m.sender_id === currentUserId}
+                onDelete={handleDeleteMessage}
               />
             ))}
             <div ref={bottomRef} />
@@ -323,7 +479,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
               </button>
             </div>
 
-            {/* Game cards */}
             <div className="chat-games-card-row">
               {Object.entries(promptSets).map(([key, set]) => (
                 <button
@@ -346,7 +501,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
               ))}
             </div>
 
-            {/* Prompt lists */}
             <div className="chat-games-sections">
               {Object.entries(promptSets).map(([key, set]) => (
                 <div key={key} id={`game-${key}`} className="chat-games-section">
@@ -391,7 +545,10 @@ function Chat({ currentUser, onBack, onNavigate }) {
             type="text"
             placeholder="Type a message or pick a prompt…"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              sendTypingEvent();
+            }}
           />
           <button
             type="submit"
@@ -402,7 +559,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </button>
         </form>
 
-        {/* Bottom nav */}
+        {/* Bottom nav with unread badge */}
         <footer className="home-bottom-nav">
           <button
             className="home-nav-item"
@@ -416,6 +573,11 @@ function Chat({ currentUser, onBack, onNavigate }) {
           <button className="home-nav-item active">
             <span className="home-nav-icon">
               <FiMessageCircle />
+              {unreadCount > 0 && (
+                <span className="chat-unread-badge">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </span>
             <span className="home-nav-label">Chat</span>
           </button>
@@ -434,7 +596,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   );
 }
 
-function MessageBubble({ message, isOwn }) {
+function MessageBubble({ message, isOwn, onDelete }) {
   return (
     <div
       className={
@@ -443,7 +605,16 @@ function MessageBubble({ message, isOwn }) {
       }
     >
       <div className={"chat-bubble " + (isOwn ? "own" : "other")}>
-        {message.content}
+        <span>{message.content}</span>
+        {isOwn && (
+          <button
+            className="chat-bubble-delete"
+            type="button"
+            onClick={() => onDelete(message.id)}
+          >
+            <FiTrash2 />
+          </button>
+        )}
       </div>
     </div>
   );

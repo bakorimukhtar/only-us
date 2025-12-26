@@ -553,3 +553,70 @@
 .chat-root .home-bottom-nav {
   margin: 6px 8px 10px;
 }
+
+.chat-bubble {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .chat-bubble-delete {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .app.light .chat-bubble-delete {
+    color: rgba(0, 0, 0, 0.5);
+  }
+  
+  .chat-online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #34d399;
+    margin-left: 6px;
+  }
+  
+  .chat-typing-indicator {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+  
+  .chat-unread-badge {
+    margin-left: 4px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #ff4d88;
+    color: #fff;
+    font-size: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .chat-bubble {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .chat-bubble-delete {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .app.light .chat-bubble-delete {
+    color: rgba(0, 0, 0, 0.5);
+  }
+  
