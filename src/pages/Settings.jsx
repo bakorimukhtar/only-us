@@ -13,7 +13,7 @@ function Settings({ currentUser, onBack, onLogout }) {
     bio: "",
   });
   const [partnerUsernameInput, setPartnerUsernameInput] = useState("");
-  const [linkedPartner, setLinkedPartner] = useState(null); // { username } or null
+  const [linkedPartner, setLinkedPartner] = useState(null); // { id, username } or null
   const [message, setMessage] = useState("");
 
   // load profile + pair
@@ -107,11 +107,13 @@ function Settings({ currentUser, onBack, onLogout }) {
 
     const userId = user.id;
 
+    const normalizedUsername = profile.username.trim() || null;
+
     // upsert into profiles
     const { error } = await supabase.from("profiles").upsert(
       {
         id: userId,
-        username: profile.username || null,
+        username: normalizedUsername,
         full_name: profile.full_name || null,
         bio: profile.bio || null,
         updated_at: new Date().toISOString(),
@@ -130,8 +132,11 @@ function Settings({ currentUser, onBack, onLogout }) {
 
   const handleLinkPartner = async (e) => {
     e.preventDefault();
-    const targetUsername = partnerUsernameInput.trim();
-    if (!targetUsername) return;
+
+    const rawInput = partnerUsernameInput.trim();
+    if (!rawInput) return;
+
+    const targetUsername = rawInput.toLowerCase(); // normalize [web:402]
 
     setLinkLoading(true);
     setMessage("");
@@ -148,11 +153,11 @@ function Settings({ currentUser, onBack, onLogout }) {
 
     const userId = user.id;
 
-    // find partner by username
+    // find partner by username, case-insensitive
     const { data: partner, error: partnerError } = await supabase
       .from("profiles")
       .select("id, username")
-      .eq("username", targetUsername)
+      .ilike("username", targetUsername) // case-insensitive match
       .maybeSingle();
 
     if (partnerError || !partner) {
@@ -336,7 +341,7 @@ function Settings({ currentUser, onBack, onLogout }) {
                   type="text"
                   value={partnerUsernameInput}
                   onChange={(e) => setPartnerUsernameInput(e.target.value)}
-                  placeholder="Partner username, e.g. hername"
+                  placeholder="Partner username, e.g. bakori"
                 />
                 <button
                   type="submit"

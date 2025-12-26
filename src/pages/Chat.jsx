@@ -26,12 +26,24 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const [linkUsername, setLinkUsername] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkStatus, setLinkStatus] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
   const bottomRef = useRef(null);
 
   // TEMP: single shared room; later use pair.id from Supabase
   const ROOM_ID = "00000000-0000-0000-0000-000000000001";
 
-  // For now prompts are inline; later you can import from src/assets/Games/**.
+  // Get current user id once
+  useEffect(() => {
+    const loadUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    loadUser();
+  }, []);
+
+  // For now prompts are inline; later import from src/assets/Games/**
   const promptSets = {
     truth: {
       label: "Truth or Dare",
@@ -106,6 +118,22 @@ function Chat({ currentUser, onBack, onNavigate }) {
     };
 
     loadMessages();
+
+    // Optional: realtime subscription
+    const channel = supabase
+      .channel("room-messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${ROOM_ID}` },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [ROOM_ID]);
 
   // scroll to bottom when messages change
@@ -154,7 +182,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
     setSending(false);
   };
 
-  // link with a friend using @username (Supabase wiring comes later)
   const handleLink = async (e) => {
     e.preventDefault();
     const trimmed = linkUsername.trim();
@@ -259,7 +286,11 @@ function Chat({ currentUser, onBack, onNavigate }) {
 
           <div className="chat-messages">
             {messages.map((m) => (
-              <MessageBubble key={m.id} message={m} />
+              <MessageBubble
+                key={m.id}
+                message={m}
+                isOwn={currentUserId && m.sender_id === currentUserId}
+              />
             ))}
             <div ref={bottomRef} />
           </div>
@@ -403,10 +434,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   );
 }
 
-function MessageBubble({ message }) {
-  // later: compare sender_id with auth user id
-  const isOwn = false;
-
+function MessageBubble({ message, isOwn }) {
   return (
     <div
       className={
