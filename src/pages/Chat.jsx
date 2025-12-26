@@ -17,7 +17,6 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 
-const ROOM_ID = "00000000-0000-0000-0000-000000000001"; // later: pair.id
 const TYPING_IDLE_MS = 2000;
 const ONLINE_WINDOW_SEC = 20;
 
@@ -32,6 +31,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkStatus, setLinkStatus] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [roomId, setRoomId] = useState(null); // pair.id used as room id
   const [partnerUsername, setPartnerUsername] = useState("");
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
@@ -43,7 +43,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const typingChannelRef = useRef(null);
   const presenceChannelRef = useRef(null);
 
-  // For now prompts are inline; later import from src/assets/Games/**
+  // prompts (unchanged)
   const promptSets = {
     truth: {
       label: "Truth or Dare",
@@ -101,9 +101,9 @@ function Chat({ currentUser, onBack, onNavigate }) {
     },
   };
 
-  // Load user + partner once
+  // Load user + pair (room) + partner username
   useEffect(() => {
-    const loadUserAndPartner = async () => {
+    const loadUserAndPair = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -113,16 +113,19 @@ function Chat({ currentUser, onBack, onNavigate }) {
 
       const { data: pairData } = await supabase
         .from("pairs")
-        .select("user_a, user_b")
+        .select("id, user_a, user_b")
         .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
         .maybeSingle();
 
-      if (!pairData) return;
+      if (!pairData) {
+        setError("You are not linked with anyone yet.");
+        return;
+      }
+
+      setRoomId(pairData.id); // pair id = room id
 
       const partnerId =
         pairData.user_a === user.id ? pairData.user_b : pairData.user_a;
-
-      if (!partnerId) return;
 
       const { data: partnerProfile } = await supabase
         .from("profiles")
@@ -135,16 +138,18 @@ function Chat({ currentUser, onBack, onNavigate }) {
       }
     };
 
-    loadUserAndPartner();
+    loadUserAndPair();
   }, []);
 
-  // Messages + realtime + unread
+  // Messages + realtime for this room
   useEffect(() => {
+    if (!roomId) return;
+
     const loadMessages = async () => {
       const { data, error } = await supabase
         .from("messages")
         .select("*")
-        .eq("room_id", ROOM_ID)
+        .eq("room_id", roomId)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -159,14 +164,14 @@ function Chat({ currentUser, onBack, onNavigate }) {
     loadMessages();
 
     const channel = supabase
-      .channel("room-messages")
+      .channel(`room-messages-${roomId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `room_id=eq.${ROOM_ID}`,
+          filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
@@ -183,21 +188,21 @@ function Chat({ currentUser, onBack, onNavigate }) {
           event: "DELETE",
           schema: "public",
           table: "messages",
-          filter: `room_id=eq.${ROOM_ID}`,
+          filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
           if (!payload.old?.id) return;
           setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
         }
       )
-      .subscribe(); // [web:452]
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [roomId, currentUserId]);
 
-  // Smooth scroll
+  // Scroll
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -214,9 +219,11 @@ function Chat({ currentUser, onBack, onNavigate }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  // Typing indicator
+  // Typing indicator for this room
   useEffect(() => {
-    const channel = supabase.channel(`typing:${ROOM_ID}`);
+    if (!roomId) return;
+
+    const channel = supabase.channel(`typing:${roomId}`);
 
     channel.on("broadcast", { event: "typing" }, (payload) => {
       if (!currentUserId || payload.payload.userId === currentUserId) return;
@@ -236,7 +243,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [roomId, currentUserId]);
 
   const sendTypingEvent = () => {
     if (!typingChannelRef.current || !currentUserId) return;
@@ -247,14 +254,16 @@ function Chat({ currentUser, onBack, onNavigate }) {
     });
   };
 
-  // Presence (online indicator)
+  // Presence per room
   useEffect(() => {
-    const channel = supabase.channel(`presence:${ROOM_ID}`, {
+    if (!roomId) return;
+
+    const channel = supabase.channel(`presence:${roomId}`, {
       config: { presence: { key: currentUserId || "anon" } },
     });
 
     channel.on("presence", { event: "sync" }, () => {
-      const state = channel.presenceState(); // [web:457][web:280]
+      const state = channel.presenceState();
       const onlineIds = Object.keys(state || {});
       setPartnerOnline(onlineIds.length > 1);
     });
@@ -279,12 +288,12 @@ function Chat({ currentUser, onBack, onNavigate }) {
       clearInterval(heartbeat);
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [roomId, currentUserId]);
 
   const handleSend = async (e) => {
     e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || !roomId) return;
 
     setSending(true);
     setError("");
@@ -302,7 +311,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
     const { data, error } = await supabase
       .from("messages")
       .insert({
-        room_id: ROOM_ID,
+        room_id: roomId,
         sender_id: user.id,
         content: trimmed,
       })
@@ -323,7 +332,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   };
 
   const handleDeleteMessage = async (id) => {
-    await supabase.from("messages").delete().eq("id", id); // [web:437]
+    await supabase.from("messages").delete().eq("id", id);
     setMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -543,17 +552,22 @@ function Chat({ currentUser, onBack, onNavigate }) {
           <input
             className="chat-input"
             type="text"
-            placeholder="Type a message or pick a prompt…"
+            placeholder={
+              roomId
+                ? "Type a message or pick a prompt…"
+                : "Link with your person to start chatting"
+            }
             value={text}
             onChange={(e) => {
               setText(e.target.value);
               sendTypingEvent();
             }}
+            disabled={!roomId}
           />
           <button
             type="submit"
             className="chat-send-button"
-            disabled={sending || !text.trim()}
+            disabled={sending || !text.trim() || !roomId}
           >
             <FiSend />
           </button>
