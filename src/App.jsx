@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useEffect, useState } from "react";
-import "./app.css";
+import "./App.css";
 import { supabase } from "./lib/supabaseClient";
 
 import Login from "./pages/Login.jsx";
