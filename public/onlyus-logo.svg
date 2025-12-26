@@ -1,0 +1,15 @@
+<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+  <rect width="140" height="140" rx="28" fill="#0b0b0b"/>
+
+  <!-- Chat bubble left -->
+  <path d="M30 40h45a15 15 0 0 1 15 15v10a15 15 0 0 1-15 15H55l-15 10v-10H30a15 15 0 0 1-15-15V55a15 15 0 0 1 15-15z"
+        fill="#ff4d8d" opacity="0.9"/>
+
+  <!-- Chat bubble right -->
+  <path d="M65 50h45a15 15 0 0 1 15 15v10a15 15 0 0 1-15 15H90l-15 10v-10H65a15 15 0 0 1-15-15V65a15 15 0 0 1 15-15z"
+        fill="#ff4d8d"/>
+
+  <!-- Two dots -->
+  <circle cx="60" cy="68" r="3" fill="#0b0b0b"/>
+  <circle cx="80" cy="68" r="3" fill="#0b0b0b"/>
+</svg>

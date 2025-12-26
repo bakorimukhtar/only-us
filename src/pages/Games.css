@@ -1,0 +1,224 @@
+/* src/pages/Games.css */
+@import "../app.css";
+
+.games-root {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 96px 16px 24px;
+}
+
+.games-shell {
+  width: 100%;
+  max-width: 1040px;
+  border-radius: var(--radius-xl);
+  background: radial-gradient(
+      circle at top,
+      rgba(255, 77, 136, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(145deg, #05060a, #11111a);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app.light .games-shell {
+  background: radial-gradient(
+      circle at top,
+      rgba(255, 77, 136, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(145deg, #ffffff, #f3f0ff);
+}
+
+/* Header */
+
+.games-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app.light .games-header {
+  border-bottom-color: rgba(15, 15, 15, 0.08);
+}
+
+.games-header-back {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.app.light .games-header-back {
+  color: #111118;
+}
+
+.games-header-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.games-header-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.games-header-subtitle {
+  font-size: 11px;
+  color: var(--text-muted-dark);
+}
+
+.app.light .games-header-subtitle {
+  color: var(--text-muted-light);
+}
+
+.games-header-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff4d88, #ff9bc2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Main and cards */
+
+.games-main {
+  padding: 14px 14px 10px;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .games-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .games-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.game-card {
+  position: relative;
+  border-radius: 18px;
+  padding: 14px 12px 12px;
+  background: rgba(6, 6, 10, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.app.light .game-card {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 15, 15, 0.08);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.game-card-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, #ff4d88, #ff9bc2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.game-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.game-card-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted-dark);
+}
+
+.app.light .game-card-text {
+  color: var(--text-muted-light);
+}
+
+.game-card-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.app.light .game-card-meta {
+  color: rgba(17, 17, 24, 0.7);
+}
+
+.game-card-button {
+  margin-top: 4px;
+  align-self: flex-start;
+  border-radius: 999px;
+  border: none;
+  padding: 7px 13px;
+  font-size: 12px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff4d88, #ff8ab8);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 12px 30px rgba(255, 77, 136, 0.6);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+.game-card-button span {
+  font-size: 16px;
+}
+
+.game-card-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(255, 77, 136, 0.85);
+  filter: brightness(1.04);
+}
+
+/* Bottom nav spacing for this page */
+
+.games-root .home-bottom-nav {
+  margin: 8px 10px 10px;
+}
+
+/* Responsive root padding */
+
+@media (max-width: 768px) {
+  .games-root {
+    padding: 88px 8px 16px;
+  }
+
+  .games-shell {
+    border-radius: 24px;
+  }
+}
