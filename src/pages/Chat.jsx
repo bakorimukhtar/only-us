@@ -17,6 +17,11 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 
+import { truthPrompts } from "../assets/games/truthOrDare/truth";
+import { darePrompts } from "../assets/games/truthOrDare/dare";
+import { wyrPrompts } from "../assets/games/wouldYouRather/wyr";
+import { pickNumberPrompts } from "../assets/games/pickNumber/pickNumber";
+
 const TYPING_IDLE_MS = 2000;
 const ONLINE_WINDOW_SEC = 20;
 
@@ -26,12 +31,13 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [showGames, setShowGames] = useState(false);
+  const [activeGameKey, setActiveGameKey] = useState("truth");
   const [showLinkPanel, setShowLinkPanel] = useState(false);
   const [linkUsername, setLinkUsername] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkStatus, setLinkStatus] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [roomId, setRoomId] = useState(null); // pair.id used as room id
+  const [roomId, setRoomId] = useState(null);
   const [partnerUsername, setPartnerUsername] = useState("");
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
@@ -43,65 +49,37 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const typingChannelRef = useRef(null);
   const presenceChannelRef = useRef(null);
 
-  // prompts
   const promptSets = {
     truth: {
-      label: "Truth or Dare",
+      label: "Truth",
       icon: <FiPlayCircle />,
-      categories: {
-        Friend: [
-          "Truth (friend): What is one memory with me you’ll never forget?",
-          "Truth (friend): What is something you wish we did more together?",
-        ],
-        Crush: [
-          "Truth (crush): When did you first start liking me?",
-          "Truth (crush): What’s one small thing I do that you secretly love?",
-        ],
-        Partner: [
-          "Truth (partner): What’s something you’re scared to tell me but want to?",
-          "Truth (partner): When do you feel closest to me?",
-        ],
-      },
+      categories: truthPrompts,
+      tagline: "Deep questions to get you two talking.",
+      tone: "soft",
     },
     dare: {
-      label: "Dare prompts",
+      label: "Dare",
       icon: <FiZap />,
-      categories: {
-        Friend: [
-          "Dare (friend): Send me your most unfiltered selfie right now.",
-          "Dare (friend): Voice note a random story from today.",
-        ],
-        Crush: [
-          "Dare (crush): Send a 10‑second voice note describing me without using my name.",
-          "Dare (crush): Change my name in your phone to something sweet and send a screenshot.",
-        ],
-        Partner: [
-          "Dare (partner): Send a voice note telling me 3 things you love about us.",
-          "Dare (partner): Plan a tiny date idea and send it as a message.",
-        ],
-      },
+      categories: darePrompts,
+      tagline: "Fun actions that bring you closer.",
+      tone: "bold",
     },
     wyr: {
       label: "Would you rather",
       icon: <FiHelpCircle />,
-      categories: {
-        Friend: [
-          "Would you rather: movie night in or late walk outside?",
-          "Would you rather: unlimited trips with friends or unlimited gadgets?",
-        ],
-        Crush: [
-          "Would you rather: endless late‑night calls or surprise dates?",
-          "Would you rather: hold hands in public or cuddle indoors?",
-        ],
-        Partner: [
-          "Would you rather: travel the world together or build a home together?",
-          "Would you rather: always be honest even if it hurts or keep small secrets to protect feelings?",
-        ],
-      },
+      categories: wyrPrompts,
+      tagline: "Pick between two ‘us’ scenarios.",
+      tone: "soft",
+    },
+    pickNumber: {
+      label: "Pick a number",
+      icon: <FiHelpCircle />,
+      categories: pickNumberPrompts,
+      tagline: "Choose a number, unlock a moment.",
+      tone: "soft",
     },
   };
 
-  // Load user + pair (room) + partner username
   useEffect(() => {
     const loadUserAndPair = async () => {
       const {
@@ -122,7 +100,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
         return;
       }
 
-      setRoomId(pairData.id); // pair id = room id
+      setRoomId(pairData.id);
 
       const partnerId =
         pairData.user_a === user.id ? pairData.user_b : pairData.user_a;
@@ -141,7 +119,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
     loadUserAndPair();
   }, []);
 
-  // Messages + realtime for this room
   useEffect(() => {
     if (!roomId) return;
 
@@ -202,14 +179,12 @@ function Chat({ currentUser, onBack, onNavigate }) {
     };
   }, [roomId, currentUserId]);
 
-  // Scroll
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Mark read on focus
   useEffect(() => {
     const onFocus = () => {
       lastReadRef.current = Date.now();
@@ -219,7 +194,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  // Typing indicator for this room
   useEffect(() => {
     if (!roomId) return;
 
@@ -254,7 +228,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
     });
   };
 
-  // Presence per room
   useEffect(() => {
     if (!roomId) return;
 
@@ -373,10 +346,11 @@ function Chat({ currentUser, onBack, onNavigate }) {
     ? `Chat with @${partnerUsername}`
     : "Private DM with your person";
 
+  const activeGame = promptSets[activeGameKey];
+
   return (
     <div className="chat-root">
       <div className="chat-shell">
-        {/* Header */}
         <header className="chat-header">
           <button
             className="chat-header-back"
@@ -412,7 +386,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </div>
         </header>
 
-        {/* Link drawer */}
         {showLinkPanel && (
           <section className="chat-link-panel">
             <div className="chat-link-panel-header">
@@ -446,7 +419,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </section>
         )}
 
-        {/* Messages */}
         <main className="chat-main">
           {error && <div className="chat-error">{error}</div>}
 
@@ -463,7 +435,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </div>
         </main>
 
-        {/* Floating games bar */}
         <div className="chat-floating-bar">
           <button
             className="chat-games-toggle"
@@ -471,16 +442,20 @@ function Chat({ currentUser, onBack, onNavigate }) {
           >
             <FiPlus />
           </button>
-          <span className="chat-floating-label">Games & prompts</span>
+          <span className="chat-floating-label">
+            Keep it fun. Open games.
+          </span>
         </div>
 
-        {/* Games bottom sheet */}
         {showGames && (
           <div className="chat-games-sheet">
+            <div className="chat-games-drag-handle" />
             <div className="chat-games-sheet-header">
               <div>
-                <h3>Play inside the chat</h3>
-                <p>Choose a game, pick a category, send the prompt.</p>
+                <h3>Games for just you two</h3>
+                <p>
+                  Choose a game, pick how you feel, then drop a prompt into the chat.
+                </p>
               </div>
               <button
                 className="chat-games-sheet-close"
@@ -490,43 +465,51 @@ function Chat({ currentUser, onBack, onNavigate }) {
               </button>
             </div>
 
-            <div className="chat-games-card-row">
+            <div className="chat-games-tabs-row">
               {Object.entries(promptSets).map(([key, set]) => (
                 <button
                   key={key}
-                  className="chat-game-card"
-                  onClick={() =>
-                    document
-                      .getElementById(`game-${key}`)
-                      ?.scrollIntoView({ behavior: "smooth" })
+                  className={
+                    "chat-games-tab" +
+                    (key === activeGameKey ? " chat-games-tab-active" : "")
                   }
+                  onClick={() => setActiveGameKey(key)}
                 >
-                  <div className="chat-game-card-icon">{set.icon}</div>
-                  <div className="chat-game-card-text">
-                    <span className="chat-game-card-title">{set.label}</span>
-                    <span className="chat-game-card-sub">
-                      Friend · Crush · Partner
-                    </span>
-                  </div>
+                  <span className="chat-games-tab-icon">{set.icon}</span>
+                  <span className="chat-games-tab-label">{set.label}</span>
                 </button>
               ))}
             </div>
 
+            <div className="chat-games-active-meta">
+              <span className="chat-games-active-title">
+                {activeGame.label}
+              </span>
+              <span className="chat-games-active-tagline">
+                {activeGame.tagline}
+              </span>
+            </div>
+
             <div className="chat-games-sections">
-              {Object.entries(promptSets).map(([key, set]) => (
-                <div key={key} id={`game-${key}`} className="chat-games-section">
-                  <h4>{set.label}</h4>
-                  {Object.entries(set.categories).map(
-                    ([categoryLabel, prompts]) => (
-                      <div
-                        key={categoryLabel}
-                        className="chat-games-category-block"
-                      >
-                        <span className="chat-games-category-pill">
-                          {categoryLabel}
-                        </span>
-                        <div className="chat-games-pills">
-                          {prompts.map((p) => (
+              {Object.entries(activeGame.categories).map(
+                ([categoryLabel, prompts]) => (
+                  <div
+                    key={categoryLabel}
+                    className="chat-games-section"
+                  >
+                    <div className="chat-games-category-header">
+                      <span className="chat-games-category-pill">
+                        {categoryLabel}
+                      </span>
+                      <span className="chat-games-count">
+                        {Array.isArray(prompts)
+                          ? `${prompts.length} prompts`
+                          : `${Object.keys(prompts).length} prompts`}
+                      </span>
+                    </div>
+                    <div className="chat-games-pills">
+                      {Array.isArray(prompts)
+                        ? prompts.map((p) => (
                             <button
                               key={p}
                               className="chat-games-pill"
@@ -534,29 +517,40 @@ function Chat({ currentUser, onBack, onNavigate }) {
                             >
                               {p}
                             </button>
+                          ))
+                        : Object.entries(prompts).map(([num, p]) => (
+                            <button
+                              key={num}
+                              className="chat-games-pill"
+                              onClick={() => injectPrompt(p)}
+                            >
+                              <span className="chat-games-pill-number">
+                                #{num}
+                              </span>
+                              <span className="chat-games-pill-text">
+                                {p}
+                              </span>
+                            </button>
                           ))}
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              ))}
+                    </div>
+                  </div>
+                )
+              )}
             </div>
 
             <div className="chat-games-sheet-footer">
-              Tap a prompt to drop it into the box below, then hit send.
+              Tap a prompt to fill the message box, then add your own twist and hit send.
             </div>
           </div>
         )}
 
-        {/* Input row */}
         <form className="chat-input-row" onSubmit={handleSend}>
           <input
             className="chat-input"
             type="text"
             placeholder={
               roomId
-                ? "Type a message or pick a prompt…"
+                ? "Type a message or drop a prompt…"
                 : "Link with your person to start chatting"
             }
             value={text}
@@ -575,7 +569,6 @@ function Chat({ currentUser, onBack, onNavigate }) {
           </button>
         </form>
 
-        {/* Bottom nav with unread badge */}
         <footer className="home-bottom-nav">
           <button
             className="home-nav-item"
