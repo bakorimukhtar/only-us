@@ -14,7 +14,7 @@ function App() {
     return saved === "light" ? "light" : "dark";
   });
   const [showSplash, setShowSplash] = useState(true);
-  const [screen, setScreen] = useState("landing");
+  const [screen, setScreen] = useState("landing"); // landing | login | home | chat | settings
   const [currentUser, setCurrentUser] = useState("");
 
   // On mount: check Supabase session + stored username and decide screen
@@ -24,7 +24,7 @@ function App() {
 
       const {
         data: { session },
-      } = await supabase.auth.getSession(); // persisted session [web:373][web:381]
+      } = await supabase.auth.getSession(); // persisted session [web:30][web:115]
 
       if (session && savedUser) {
         setCurrentUser(savedUser);
@@ -56,11 +56,11 @@ function App() {
     setScreen("login");
   };
 
-  // called from Login after OTP success
+  // called from Login after OTP + optional profile
   const handleLoginSuccess = async (usernameFallback) => {
     const {
       data: { user },
-    } = await supabase.auth.getUser(); // uses current session [web:223][web:374]
+    } = await supabase.auth.getUser(); // uses current session [web:30][web:110]
 
     const email = user?.email || "";
     const displayName =
@@ -93,6 +93,7 @@ function App() {
 
   return (
     <div className={`app ${theme}`}>
+      {/* theme toggle chrome */}
       <div className="app-chrome">
         <div
           className={
@@ -110,6 +111,7 @@ function App() {
 
       <AppHeader />
 
+      {/* Landing / splash */}
       {screen === "landing" &&
         (showSplash ? (
           <SoftSplash onEnterSpace={handleEnterSpace} />
@@ -117,20 +119,22 @@ function App() {
           <Landing onEnterSpace={handleEnterSpace} />
         ))}
 
+      {/* Auth screen */}
       {screen === "login" && (
         <Login onLoginSuccess={handleLoginSuccess} />
       )}
 
+      {/* Home */}
       {screen === "home" && (
         <Home
           currentUser={currentUser}
           onNavigate={handleNavigateFromHome}
           onLogout={handleLogout}
-          // you can use this inside Home to open a quote composer if needed
           onShowQuotes={() => {}}
         />
       )}
 
+      {/* Chat */}
       {screen === "chat" && (
         <Chat
           currentUser={currentUser}
@@ -142,6 +146,7 @@ function App() {
         />
       )}
 
+      {/* Settings */}
       {screen === "settings" && (
         <Settings
           currentUser={currentUser}
@@ -248,9 +253,9 @@ function Landing({ onEnterSpace }) {
             </h1>
 
             <p className="landing-subtitle">
-              A secret chat and game space for just the two of you. Talk, play
-              truth or dare, ask deep questions, and never run out of “what do
-              we say next?” again.
+              A secret chat and game space for just the two of you. Talk,
+              play truth or dare, ask deep questions, and never run out of
+              “what do we say next?” again.
             </p>
 
             <div className="landing-meta">
@@ -273,14 +278,17 @@ function Landing({ onEnterSpace }) {
                 Enter our space
                 <span>↳</span>
               </button>
-              <button className="landing-secondary" onClick={handlePeekGames}>
+              <button
+                className="landing-secondary"
+                onClick={handlePeekGames}
+              >
                 Preview the games
               </button>
             </div>
 
             <div className="landing-caption">
-              Your messages stay between you and her. No sign‑ups, no timeline,
-              just the two of you.
+              Your messages stay between you and her. No sign‑ups, no
+              timeline, just the two of you.
             </div>
           </div>
         </div>

@@ -43,7 +43,7 @@ function Chat({ currentUser, onBack, onNavigate }) {
   const typingChannelRef = useRef(null);
   const presenceChannelRef = useRef(null);
 
-  // prompts (unchanged)
+  // prompts
   const promptSets = {
     truth: {
       label: "Truth or Dare",
@@ -440,7 +440,9 @@ function Chat({ currentUser, onBack, onNavigate }) {
                 {linkLoading ? "Linking…" : "Link"}
               </button>
             </form>
-            {linkStatus && <div className="chat-link-status">{linkStatus}</div>}
+            {linkStatus && (
+              <div className="chat-link-status">{linkStatus}</div>
+            )}
           </section>
         )}
 

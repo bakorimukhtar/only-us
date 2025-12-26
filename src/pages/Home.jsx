@@ -28,7 +28,7 @@ function Home({ currentUser, onNavigate, onLogout }) {
       const {
         data: { user },
         error: userError,
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser(); // [web:115]
 
       if (userError || !user) {
         setLoadingQuotes(false);
@@ -44,7 +44,7 @@ function Home({ currentUser, onNavigate, onLogout }) {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle(); // latest row [web:400][web:402]
+        .maybeSingle(); // latest row [web:124]
 
       if (myQuoteData) {
         setOwnQuote(myQuoteData);
@@ -133,7 +133,7 @@ function Home({ currentUser, onNavigate, onLogout }) {
         content: trimmed,
       })
       .select()
-      .single(); // return inserted row [web:411][web:417]
+      .single(); // return inserted row [web:124]
 
     if (error) {
       setMessage("Could not post quote.");
@@ -175,7 +175,7 @@ function Home({ currentUser, onNavigate, onLogout }) {
 
         {/* Content area */}
         <main className="home-main-layout">
-          {/* Left column – profile & quick actions */}
+          {/* Left column – profile & quick actions (below feed on mobile) */}
           <aside className="home-sidebar">
             <div className="home-profile-card">
               <div className="home-profile-row">
@@ -256,7 +256,15 @@ function Home({ currentUser, onNavigate, onLogout }) {
           <section className="home-feed">
             {/* “Stories” style row */}
             <div className="home-stories-row">
-              <div className="home-story-item home-story-you">
+              <div
+                className="home-story-item home-story-you"
+                onClick={() => {
+                  const textarea = document.querySelector(
+                    ".home-quote-form textarea"
+                  );
+                  if (textarea) textarea.focus();
+                }}
+              >
                 <div className="home-story-avatar-add">
                   <FiFeather />
                 </div>
@@ -320,15 +328,17 @@ function Home({ currentUser, onNavigate, onLogout }) {
                   <div className="home-feed-meta">
                     <div className="home-feed-avatar game" />
                     <div className="home-feed-meta-text">
-                      <span className="home-feed-title">Tonight’s game idea</span>
+                      <span className="home-feed-title">
+                        Tonight’s game idea
+                      </span>
                       <span className="home-feed-subtitle">
                         Truth or Dare · 5 new prompts
                       </span>
                     </div>
                   </div>
                   <p className="home-feed-quote">
-                    Spin up a quick round of Truth or Dare and see who backs out
-                    first. We’ll keep the dares spicy but safe.
+                    Spin up a quick round of Truth or Dare and see who backs
+                    out first. We’ll keep the dares spicy but safe.
                   </p>
                   <div className="home-feed-actions">
                     <button
@@ -347,7 +357,7 @@ function Home({ currentUser, onNavigate, onLogout }) {
           </section>
         </main>
 
-        {/* Bottom navigation with icon library (no Games) */}
+        {/* Bottom navigation */}
         <footer className="home-bottom-nav">
           <button
             className="home-nav-item active"

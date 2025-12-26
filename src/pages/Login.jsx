@@ -2,6 +2,15 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+  useSpring,
+} from "framer-motion";
+import { ChevronLeft } from "lucide-react";
+
 function Login({ onLoginSuccess }) {
   const [mode, setMode] = useState("signup"); // "signup" | "login"
   const [phase, setPhase] = useState("form"); // "form" | "verify"
@@ -13,20 +22,32 @@ function Login({ onLoginSuccess }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // TODO later: replace this with a real Supabase query to profiles
+  // 3D tilt setup
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseX = useSpring(x, { stiffness: 150, damping: 15 });
+  const mouseY = useSpring(y, { stiffness: 150, damping: 15 });
+
+  function handleMouseMove({ currentTarget, clientX, clientY }) {
+    const { left, top, width, height } = currentTarget.getBoundingClientRect();
+    x.set((clientX - left) / width - 0.5);
+    y.set((clientY - top) / height - 0.5);
+  }
+
+  function handleMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
+
+  const rotateX = useTransform(mouseY, [-0.5, 0.5], [7, -7]);
+  const rotateY = useTransform(mouseX, [-0.5, 0.5], [-7, 7]);
+
+  // Later you can replace with real profiles lookup
   async function resolveEmailFromInput(input) {
     const trimmed = input.trim();
-    if (trimmed.includes("@")) return trimmed; // it's already an email
+    if (trimmed.includes("@")) return trimmed;
 
-    // Example lookup:
-    // const { data, error } = await supabase
-    //   .from("profiles")
-    //   .select("email")
-    //   .eq("username", trimmed)
-    //   .single();
-    // if (error || !data) throw new Error("No account found with that username.");
-    // return data.email;
-
+    // username -> email lookup can go here
     throw new Error("Type the email you used to sign up.");
   }
 
@@ -60,7 +81,6 @@ function Login({ onLoginSuccess }) {
 
     try {
       if (mode === "signup") {
-        // SIGNUP FLOW: create account, send OTP via confirm-signup template
         if (!c.includes("@")) {
           setError("Enter a valid email address for confirmation.");
           setLoading(false);
@@ -73,7 +93,7 @@ function Login({ onLoginSuccess }) {
           options: {
             data: {
               username: u,
-              display_name: u, // helpful metadata key
+              display_name: u,
             },
           },
         });
@@ -87,7 +107,6 @@ function Login({ onLoginSuccess }) {
         setPendingMode("signup");
         setPhase("verify");
       } else {
-        // LOGIN FLOW: check email/username + password, then send OTP for login
         let emailForOtp;
         try {
           emailForOtp = await resolveEmailFromInput(c);
@@ -139,166 +158,209 @@ function Login({ onLoginSuccess }) {
       : "Enter your email or username and password to unlock your private chat and games again.";
 
   return (
-    <div className="auth-root">
+    <div
+      className="auth-root"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="auth-shell">
-        <div className="auth-card">
+        {/* LEFT: animated auth card */}
+        <motion.div
+          className="auth-card"
+          style={{ rotateX, rotateY }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        >
           <div className="auth-card-inner">
-            {phase === "form" ? (
-              <>
-                <div className="auth-pill-row">
-                  <div className="auth-logo">
-                    <img src="/onlyus-logo.svg" alt="Only Us logo" />
+            <AnimatePresence mode="wait">
+              {phase === "form" ? (
+                <motion.div
+                  key="form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="auth-pill-row">
+                    <div className="auth-logo">
+                      <img src="/onlyus-logo.svg" alt="Only Us logo" />
+                    </div>
+                    <div className="auth-pill">
+                      <span className="auth-pill-dot" />
+                      <span>{mode === "signup" ? "New here" : "Back again"}</span>
+                    </div>
                   </div>
-                  <div className="auth-pill">
-                    <span className="auth-pill-dot" />
-                    <span>{mode === "signup" ? "New here" : "Back again"}</span>
+
+                  <h1 className="auth-title">{title}</h1>
+                  <p className="auth-subtitle">{subtitle}</p>
+
+                  <div className="auth-tabs">
+                    <button
+                      type="button"
+                      className={
+                        "auth-tab-button " + (mode === "signup" ? "active" : "")
+                      }
+                      onClick={() => {
+                        setMode("signup");
+                        setPhase("form");
+                        setError("");
+                      }}
+                    >
+                      I’m new
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        "auth-tab-button " + (mode === "login" ? "active" : "")
+                      }
+                      onClick={() => {
+                        setMode("login");
+                        setPhase("form");
+                        setError("");
+                      }}
+                    >
+                      I’ve been here
+                    </button>
                   </div>
-                </div>
 
-                <h1 className="auth-title">{title}</h1>
-                <p className="auth-subtitle">{subtitle}</p>
+                  <form onSubmit={handleSubmit} className="login-form">
+                    {mode === "signup" && (
+                      <label className="login-label">
+                        Username
+                        <input
+                          className="login-input"
+                          type="text"
+                          placeholder="The name you want to be seen as"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                        />
+                      </label>
+                    )}
 
-                <div className="auth-tabs">
-                  <button
-                    type="button"
-                    className={
-                      "auth-tab-button " +
-                      (mode === "signup" ? "active" : "")
-                    }
-                    onClick={() => {
-                      setMode("signup");
-                      setPhase("form");
-                      setError("");
-                    }}
-                  >
-                    I’m new
-                  </button>
-                  <button
-                    type="button"
-                    className={
-                      "auth-tab-button " + (mode === "login" ? "active" : "")
-                    }
-                    onClick={() => {
-                      setMode("login");
-                      setPhase("form");
-                      setError("");
-                    }}
-                  >
-                    I’ve been here
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="login-form">
-                  {mode === "signup" && (
                     <label className="login-label">
-                      Username
+                      {mode === "signup" ? "Email" : "Email or username"}
                       <input
                         className="login-input"
                         type="text"
-                        placeholder="The name you want to be seen as"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder={
+                          mode === "signup"
+                            ? "The email we’ll send your code to"
+                            : "The email or username you used before"
+                        }
+                        value={contact}
+                        onChange={(e) => setContact(e.target.value)}
                       />
                     </label>
-                  )}
 
-                  <label className="login-label">
-                    {mode === "signup" ? "Email" : "Email or username"}
-                    <input
-                      className="login-input"
-                      type="text"
-                      placeholder={
-                        mode === "signup"
-                          ? "The email we’ll send your code to"
-                          : "The email or username you used before"
-                      }
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                    />
-                  </label>
+                    <label className="login-label">
+                      Password
+                      <input
+                        className="login-input"
+                        type="password"
+                        placeholder={
+                          mode === "signup"
+                            ? "Create a small secret"
+                            : "Your secret to this space"
+                        }
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </label>
 
-                  <label className="login-label">
-                    Password
-                    <input
-                      className="login-input"
-                      type="password"
-                      placeholder={
-                        mode === "signup"
-                          ? "Create a small secret"
-                          : "Your secret to this space"
-                      }
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </label>
+                    {error && <div className="login-error">{error}</div>}
 
-                  {error && <div className="login-error">{error}</div>}
+                    <button
+                      type="submit"
+                      className="login-primary"
+                      disabled={loading}
+                    >
+                      {loading
+                        ? "Please wait…"
+                        : mode === "signup"
+                        ? "Create my space"
+                        : "Enter our space"}
+                      <span className="arrow">↳</span>
+                    </button>
+                  </form>
 
+                  <div className="auth-footnote">
+                    Only you and the person you share this with can get in. No
+                    public profiles, no feed, just this shared room.
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="verify"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                >
                   <button
-                    type="submit"
-                    className="login-primary"
-                    disabled={loading}
+                    type="button"
+                    className="login-secondary-link"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 8,
+                    }}
+                    onClick={() => {
+                      setPhase("form");
+                      setError("");
+                    }}
                   >
-                    {loading
-                      ? "Please wait…"
-                      : mode === "signup"
-                      ? "Create my space"
-                      : "Enter our space"}
-                    <span className="arrow">↳</span>
+                    <ChevronLeft size={16} />
+                    Back
                   </button>
-                </form>
 
-                <div className="auth-footnote">
-                  Only you and the person you share this with can get in. No
-                  public profiles, no feed, just this shared room.
-                </div>
-              </>
-            ) : (
-              <VerifyCodeView
-                flowMode={pendingMode}
-                email={pendingEmail}
-                username={username}
-                onSuccess={onLoginSuccess}
-                onBack={() => {
-                  setPhase("form");
-                  setError("");
-                }}
-                setError={setError}
-              />
-            )}
+                  <VerifyCodeView
+                    flowMode={pendingMode}
+                    email={pendingEmail}
+                    username={username}
+                    onSuccess={onLoginSuccess}
+                    onBack={() => {
+                      setPhase("form");
+                      setError("");
+                    }}
+                    setError={setError}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Right side bubbles */}
+        {/* RIGHT: chat bubble visual + mobile CTA (styled in App.css) */}
         <div className="auth-visual">
-          <div className="landing-visual-inner">
-            <div className="landing-orbit">
-              <div className="message-stack">
-                <div className="message-chip game game-top">
-                  <div className="message-avatar" />
-                  <span>
-                    “It’s still wild how happy your messages make me.”
-                  </span>
-                </div>
-                <div className="message-chip game game-middle">
-                  <span className="message-typing">
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
-                  </span>
-                  <span>Your names and secrets stay in here.</span>
-                </div>
-                <div className="message-chip game game-bottom">
-                  <span>
-                    Once you’re in, it’s just the two of you, talking and
-                    playing.
-                  </span>
+          <div className="landing-visual">
+            <div className="landing-visual-inner">
+              <div className="landing-orbit">
+                <div className="message-stack">
+                  <div className="message-chip game game-top">
+                    <div className="message-avatar" />
+                    <span>
+                      “It’s still wild how happy your messages make me.”
+                    </span>
+                  </div>
+                  <div className="message-chip game game-middle">
+                    <span className="message-typing">
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </span>
+                    <span>Your names and secrets stay in here.</span>
+                  </div>
+                  <div className="message-chip game game-bottom">
+                    <span>
+                      Once you’re in, it’s just the two of you, talking and
+                      playing.
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Mobile primary CTA under the visual */}
           <div className="auth-mobile-cta">
             <button
               className="mobile-enter-button"
@@ -356,7 +418,7 @@ function VerifyCodeView({
         type: "email",
         email,
         token: trimmed,
-      });
+      }); // [web:89]
 
       if (error) {
         setError(error.message);
@@ -365,14 +427,12 @@ function VerifyCodeView({
       }
 
       if (flowMode === "signup") {
-        // OTP correct: user is now signed in; update display_name metadata
         await supabase.auth.updateUser({
           data: {
             display_name: username,
             username,
           },
-        }); // updates auth user metadata, shows as Display name in dashboard [web:223][web:205]
-
+        });
         setSubmitting(false);
         setStep("profile");
       } else {
@@ -391,7 +451,7 @@ function VerifyCodeView({
     setSubmitting(true);
 
     try {
-      // later: save fullName + bio to a Supabase "profiles" table
+      // later: save fullName + bio to a profiles table
       onSuccess(username || fullName || email);
     } catch (err) {
       setError("Could not save your profile. Please try again.");
@@ -404,12 +464,10 @@ function VerifyCodeView({
     setResending(true);
     try {
       if (flowMode === "login") {
-        const { error } = await supabase.auth.signInWithOtp({ email });
+        const { error } = await supabase.auth.signInWithOtp({ email }); // [web:91][web:97]
         if (error) setError(error.message);
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-        });
+        const { error } = await supabase.auth.signUp({ email });
         if (
           error &&
           !error.message.toLowerCase().includes("already registered")
@@ -437,7 +495,9 @@ function VerifyCodeView({
           </div>
         </div>
 
-        <h1 className="auth-title">Almost done, {username || "lovebird"}</h1>
+        <h1 className="auth-title">
+          Almost done, {username || "lovebird"}
+        </h1>
         <p className="auth-subtitle">
           Your username is <strong>@{username}</strong>. You can change your
           display name and add a tiny bio. Share this username with a friend,
@@ -488,7 +548,7 @@ function VerifyCodeView({
     );
   }
 
-  // OTP step (both signup + login)
+  // OTP step
   return (
     <>
       <div className="auth-pill-row">

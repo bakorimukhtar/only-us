@@ -1,14 +1,14 @@
 /* src/pages/Home.css */
 @import "../App.css";
 
-/* Overall layout */
+/* Base: mobile-first app layout */
 
 .home-root {
   flex: 1;
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 96px 24px 32px;
+  padding: 80px 16px 24px; /* matches Login/App mobile padding */
 }
 
 .home-shell {
@@ -16,7 +16,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* Top app bar */
@@ -83,16 +83,16 @@
   font-weight: 600;
 }
 
-/* Main two-column layout */
+/* Main layout – mobile: stacked, feed first */
 
 .home-main-layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
   align-items: flex-start;
 }
 
-/* LEFT: profile + actions */
+/* LEFT: profile + actions (below feed on mobile) */
 
 .home-sidebar {
   display: flex;
@@ -262,7 +262,7 @@
   background: var(--pink);
 }
 
-/* RIGHT: feed column */
+/* RIGHT: feed column (on mobile it appears first) */
 
 .home-feed {
   position: relative;
@@ -276,6 +276,7 @@
   box-shadow: var(--shadow-soft);
   padding: 14px 14px 16px;
   overflow: hidden;
+  order: -1; /* feed above sidebar on mobile */
 }
 
 .app.light .home-feed {
@@ -295,7 +296,14 @@
   gap: 12px;
   padding-bottom: 10px;
   margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-stories-row::-webkit-scrollbar {
+  display: none;
 }
 
 .app.light .home-stories-row {
@@ -309,6 +317,7 @@
   gap: 4px;
   font-size: 11px;
   color: var(--text-muted-dark);
+  min-width: 64px;
 }
 
 .app.light .home-story-item {
@@ -464,30 +473,93 @@
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
 }
 
-/* Responsive */
+/* quote composer card on left */
 
-@media (max-width: 768px) {
-  .home-root {
-    padding: 96px 16px 24px;
-  }
-
-  .home-main-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .home-feed {
-    order: -1;
-  }
+.home-quote-card {
+  border-radius: 18px;
+  padding: 10px 12px;
+  background: rgba(6, 6, 12, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 12px;
 }
 
-/* Bottom nav */
+.app.light .home-quote-card {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 15, 15, 0.08);
+  color: #111118;
+}
+
+.home-quote-header {
+  font-size: 12px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+
+.home-quote-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-quote-form textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 4, 8, 0.96);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 6px 8px;
+  outline: none;
+  resize: vertical;
+}
+
+.home-quote-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.app.light .home-quote-form textarea {
+  background: rgba(255, 255, 255, 0.96);
+  color: #111118;
+  border-color: rgba(15, 15, 15, 0.14);
+}
+
+.app.light .home-quote-form textarea::placeholder {
+  color: rgba(17, 17, 24, 0.55);
+}
+
+.home-quote-form button {
+  align-self: flex-end;
+  border-radius: 999px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff4d88, #ff8ab8);
+  color: #ffffff;
+}
+
+.home-quote-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* small status text in feed */
+
+.home-status-message {
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Bottom nav – mobile app style */
 
 .home-bottom-nav {
   position: sticky;
   bottom: 0;
   margin-top: 16px;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: 18px;
   background: rgba(6, 6, 10, 0.96);
   backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -539,80 +611,20 @@
 .home-nav-label {
   font-size: 11px;
 }
-/* quote composer card on left */
-.home-quote-card {
-    border-radius: 18px;
-    padding: 10px 12px;
-    background: rgba(6, 6, 12, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    font-size: 12px;
+
+/* Desktop / larger screens: two-column dashboard */
+
+@media (min-width: 769px) {
+  .home-root {
+    padding: 96px 24px 32px;
   }
-  
-  .app.light .home-quote-card {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(15, 15, 15, 0.08);
-    color: #111118;
+
+  .home-main-layout {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 20px;
   }
-  
-  .home-quote-header {
-    font-size: 12px;
-    margin-bottom: 6px;
-    opacity: 0.9;
+
+  .home-feed {
+    order: 0;
   }
-  
-  .home-quote-form {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  
-  .home-quote-form textarea {
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(4, 4, 8, 0.96);
-    color: #ffffff;
-    font-size: 12px;
-    padding: 6px 8px;
-    outline: none;
-    resize: vertical;
-  }
-  
-  .home-quote-form textarea::placeholder {
-    color: rgba(255, 255, 255, 0.55);
-  }
-  
-  .app.light .home-quote-form textarea {
-    background: rgba(255, 255, 255, 0.96);
-    color: #111118;
-    border-color: rgba(15, 15, 15, 0.14);
-  }
-  
-  .app.light .home-quote-form textarea::placeholder {
-    color: rgba(17, 17, 24, 0.55);
-  }
-  
-  .home-quote-form button {
-    align-self: flex-end;
-    border-radius: 999px;
-    border: none;
-    padding: 6px 12px;
-    font-size: 11px;
-    cursor: pointer;
-    background: linear-gradient(135deg, #ff4d88, #ff8ab8);
-    color: #ffffff;
-  }
-  
-  .home-quote-meta {
-    margin-top: 4px;
-    font-size: 11px;
-    opacity: 0.8;
-  }
-  
-  /* small status text in feed */
-  .home-status-message {
-    margin-top: 6px;
-    font-size: 11px;
-    opacity: 0.8;
-  }
-  
+}
